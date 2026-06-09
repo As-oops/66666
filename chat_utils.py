@@ -211,11 +211,13 @@ def call_openai_api(
     """
     try:
         import openai
+        from openai import OpenAIError
         
-        # 使用新版OpenAI客户端
+        # 使用新版OpenAI客户端，设置超时
         client = openai.OpenAI(
             api_key=api_key,
-            base_url=base_url
+            base_url=base_url,
+            timeout=30  # 设置30秒超时
         )
         
         # 构建请求参数
@@ -250,9 +252,13 @@ def call_openai_api(
                 yield content
                 
     except ImportError:
-        yield "请安装 openai 库: pip install openai"
+        yield "❌ 请安装 openai 库: pip install openai"
+    except OpenAIError as e:
+        yield f"❌ API请求失败: {str(e)}"
+    except TimeoutError:
+        yield "❌ 请求超时，请检查网络连接或稍后重试"
     except Exception as e:
-        yield f"API请求失败: {str(e)}"
+        yield f"❌ 未知错误: {str(e)}"
 
 def call_anthropic_api(
     messages: List[Dict[str, str]],
@@ -364,7 +370,7 @@ def get_response_generator(
         if api_type == "deepseek" or "deepseek" in model.lower():
             # DeepSeek模型
             yield "🔄 正在连接DeepSeek API..."
-            return call_deepseek_api(
+            yield from call_deepseek_api(
                 messages=messages,
                 model=model,
                 api_key=api_key,
@@ -373,7 +379,7 @@ def get_response_generator(
         elif api_type == "anthropic" or "claude" in model.lower():
             # Anthropic Claude模型
             yield "🔄 正在连接Anthropic API..."
-            return call_anthropic_api(
+            yield from call_anthropic_api(
                 messages=messages,
                 model=model,
                 api_key=api_key,
@@ -382,7 +388,7 @@ def get_response_generator(
         else:
             # OpenAI模型（默认）
             yield "🔄 正在连接OpenAI API..."
-            return call_openai_api(
+            yield from call_openai_api(
                 messages=messages,
                 model=model,
                 api_key=api_key,
