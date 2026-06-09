@@ -159,19 +159,68 @@ st.markdown(f"""
 def render_sidebar():
     """渲染侧边栏配置面板"""
     with st.sidebar:
-        st.markdown("## 🤖 设置")
+        st.markdown("## 📝 对话历史")
         
-        # 模拟模式开关（默认开启）
+        # 新建会话按钮
+        if st.button("➕ 新建对话", use_container_width=True):
+            new_id = st.session_state.conversation_manager.create_new_conversation()
+            st.session_state.current_conversation_id = new_id
+            st.rerun()
+        
+        # 搜索框
+        search_query = st.text_input("🔍 搜索对话", key="search_input")
+        
+        # 获取会话列表
+        if search_query:
+            conversations = st.session_state.conversation_manager.search_conversations(search_query)
+        else:
+            conversations = st.session_state.conversation_manager.conversations
+        
+        # 渲染会话列表
+        if conversations:
+            st.markdown("### 会话列表")
+            for conv in conversations[:20]:  # 显示前20个
+                is_active = conv["id"] == st.session_state.current_conversation_id
+                
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    if st.button(
+                        f"💬 {truncate_text(conv['title'], 20)}",
+                        key=f"conv_{conv['id']}",
+                        use_container_width=True,
+                        type="primary" if is_active else "secondary"
+                    ):
+                        st.session_state.current_conversation_id = conv["id"]
+                        st.session_state.conversation_manager.set_current_conversation(conv["id"])
+                        st.rerun()
+                
+                with col2:
+                    if st.button("🗑️", key=f"del_{conv['id']}"):
+                        st.session_state.conversation_manager.delete_conversation(conv["id"])
+                        st.session_state.current_conversation_id = st.session_state.conversation_manager.current_conversation_id
+                        st.rerun()
+        else:
+            st.info("暂无对话记录")
+        
+        st.divider()
+        
+        # 配置区域
+        st.markdown("## ⚙️ 设置")
+        
+        # 模拟模式开关（默认关闭）
         st.markdown("### 运行模式")
         use_simulation = st.checkbox(
             "使用模拟模式",
-            value=config.get("use_simulation", True),
+            value=config.get("use_simulation", False),
             help="开启后使用模拟响应，无需API密钥即可体验对话功能"
         )
         config.set("use_simulation", use_simulation)
         
         if use_simulation:
             st.info("🎯 当前运行在模拟模式，可体验基本对话功能")
+        else:
+            st.success("✅ 当前运行在真实API模式")
         
         # API配置区域
         st.markdown("### API配置")
@@ -321,47 +370,6 @@ def render_sidebar():
             - **Max Tokens**: 单次回复的最大长度
             - **Top P**: 核采样，影响输出的多样性
             """)
-
-def render_conversation_list():
-    """渲染会话列表"""
-    st.markdown("### 📝 对话历史")
-    
-    # 搜索框
-    search_query = st.text_input("🔍 搜索对话", key="search_input")
-    
-    # 新建会话按钮
-    if st.button("➕ 新建对话", use_container_width=True):
-        new_id = st.session_state.conversation_manager.create_new_conversation()
-        st.session_state.current_conversation_id = new_id
-        st.rerun()
-    
-    # 获取会话列表
-    if search_query:
-        conversations = st.session_state.conversation_manager.search_conversations(search_query)
-    else:
-        conversations = st.session_state.conversation_manager.conversations
-    
-    # 渲染会话列表
-    for conv in conversations[:20]:  # 显示前20个
-        is_active = conv["id"] == st.session_state.current_conversation_id
-        
-        col1, col2 = st.columns([4, 1])
-        
-        with col1:
-            if st.button(
-                f"💬 {truncate_text(conv['title'], 20)}",
-                key=f"conv_{conv['id']}",
-                use_container_width=True
-            ):
-                st.session_state.current_conversation_id = conv["id"]
-                st.session_state.conversation_manager.set_current_conversation(conv["id"])
-                st.rerun()
-        
-        with col2:
-            if st.button("🗑️", key=f"del_{conv['id']}"):
-                st.session_state.conversation_manager.delete_conversation(conv["id"])
-                st.session_state.current_conversation_id = st.session_state.conversation_manager.current_conversation_id
-                st.rerun()
 
 def render_messages():
     """渲染消息列表"""
@@ -538,12 +546,6 @@ def main():
             
             开始我们的对话吧！
             """)
-    
-    st.divider()
-    
-    # 渲染会话列表
-    with st.container():
-        render_conversation_list()
     
     st.divider()
     

@@ -37,7 +37,8 @@ class Config:
             "presence_penalty": 0.0,
             "theme": "light",
             "system_prompt": "你是星期八，一个友好、有趣的AI助手。请用中文进行回复。",
-            "api_type": "deepseek"
+            "api_type": "deepseek",
+            "use_simulation": False
         }
         
         if os.path.exists(self.config_file):
