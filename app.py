@@ -161,6 +161,18 @@ def render_sidebar():
     with st.sidebar:
         st.markdown("## 🤖 设置")
         
+        # 模拟模式开关（默认开启）
+        st.markdown("### 运行模式")
+        use_simulation = st.checkbox(
+            "使用模拟模式",
+            value=config.get("use_simulation", True),
+            help="开启后使用模拟响应，无需API密钥即可体验对话功能"
+        )
+        config.set("use_simulation", use_simulation)
+        
+        if use_simulation:
+            st.info("🎯 当前运行在模拟模式，可体验基本对话功能")
+        
         # API配置区域
         st.markdown("### API配置")
         
@@ -403,7 +415,8 @@ def handle_user_input(user_input: str):
                     "frequency_penalty": config.get("frequency_penalty", 0.0),
                     "presence_penalty": config.get("presence_penalty", 0.0),
                     "stream": True
-                }
+                },
+                use_simulation=config.get("use_simulation", True)
             )
             
             # 清空思考提示

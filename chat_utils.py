@@ -1,9 +1,11 @@
 """
 对话工具模块
 包含API请求、消息处理、格式转换等核心功能
+支持模拟输出和真实模型扩展接口
 """
 import time
 import re
+import random
 from typing import Generator, List, Dict, Any, Optional
 from config import config
 
@@ -68,6 +70,48 @@ def build_messages(messages: List[Dict[str, str]], system_prompt: str = None) ->
     result.extend(messages)
     
     return result
+
+def simulate_response(user_message: str) -> Generator[str, None, None]:
+    """
+    模拟AI响应（用于演示和测试）
+    支持流式输出，模拟真实对话体验
+    
+    Args:
+        user_message: 用户输入的消息
+        
+    Yields:
+        模拟的响应文本片段
+    """
+    # 预定义的响应模板
+    responses = {
+        "你好": "你好！很高兴见到你。我是一个智能对话助手，有什么可以帮助你的吗？",
+        "你是谁": "我是一个智能对话Chatbot系统，基于Python和Streamlit开发。我可以和你进行对话，回答问题，提供帮助。",
+        "功能": "我支持以下功能：\n1. 多轮对话，记住上下文\n2. 对话历史管理\n3. 导出对话记录\n4. 深色/浅色主题切换\n5. 后续可扩展接入真实AI模型",
+        "帮助": "我可以帮助你：\n• 回答问题\n• 进行对话交流\n• 提供信息查询\n• 记录对话历史\n\n你可以随时查看历史对话或导出记录。",
+    }
+    
+    # 默认响应
+    default_responses = [
+        "这是一个很有趣的问题！让我想想...\n\n作为模拟助手，我会尽力回答你的问题。不过目前我运行在模拟模式下，后续可以接入真实的AI模型来获得更好的回答。",
+        "我理解你的问题。虽然现在是模拟模式，但我可以和你进行基本的对话交流。\n\n如果你需要更智能的回答，可以配置真实的API密钥来接入OpenAI或其他模型。",
+        "感谢你的提问！\n\n当前是演示模式，我可以：\n• 进行基本对话\n• 记住对话历史\n• 支持多轮交流\n\n要获得更智能的回复，请在侧边栏配置API密钥。",
+    ]
+    
+    # 查找匹配的响应
+    response = None
+    for key, value in responses.items():
+        if key in user_message:
+            response = value
+            break
+    
+    # 如果没有匹配，使用默认响应
+    if not response:
+        response = random.choice(default_responses)
+    
+    # 模拟流式输出（逐字输出）
+    for char in response:
+        yield char
+        time.sleep(0.02)  # 模拟打字延迟
 
 def call_openai_api(
     messages: List[Dict[str, str]],
@@ -204,10 +248,11 @@ def get_response_generator(
     model: str,
     api_key: str,
     base_url: str,
-    params: Dict[str, Any]
+    params: Dict[str, Any],
+    use_simulation: bool = True
 ) -> Generator[str, None, None]:
     """
-    根据模型类型获取对应的响应生成器
+    根据配置获取对应的响应生成器
     
     Args:
         messages: 消息列表
@@ -215,26 +260,50 @@ def get_response_generator(
         api_key: API密钥
         base_url: API基础URL
         params: 其他参数
+        use_simulation: 是否使用模拟模式
         
     Yields:
         生成的文本片段
     """
-    # 根据模型类型选择API
-    if "claude" in model.lower():
-        return call_anthropic_api(
-            messages=messages,
-            model=model,
-            api_key=api_key,
-            **params
-        )
-    else:
-        return call_openai_api(
-            messages=messages,
-            model=model,
-            api_key=api_key,
-            base_url=base_url,
-            **params
-        )
+    # 如果使用模拟模式或没有配置API密钥
+    if use_simulation or not api_key:
+        # 获取最后一条用户消息
+        last_user_message = ""
+        for msg in reversed(messages):
+            if msg["role"] == "user":
+                last_user_message = msg["content"]
+                break
+        
+        return simulate_response(last_user_message)
+    
+    # 真实API调用（预留扩展接口）
+    try:
+        # 根据模型类型选择API
+        if "claude" in model.lower():
+            return call_anthropic_api(
+                messages=messages,
+                model=model,
+                api_key=api_key,
+                **params
+            )
+        else:
+            return call_openai_api(
+                messages=messages,
+                model=model,
+                api_key=api_key,
+                base_url=base_url,
+                **params
+            )
+    except Exception as e:
+        # 如果API调用失败，回退到模拟模式
+        yield f"⚠️ API调用失败: {str(e)}\n\n已切换到模拟模式。"
+        last_user_message = ""
+        for msg in reversed(messages):
+            if msg["role"] == "user":
+                last_user_message = msg["content"]
+                break
+        for chunk in simulate_response(last_user_message):
+            yield chunk
 
 def format_timestamp(timestamp: str = None) -> str:
     """
