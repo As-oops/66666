@@ -28,16 +28,16 @@ class Config:
         """
         default_config = {
             "api_key": "",
-            "selected_model": "gpt-3.5-turbo",
-            "base_url": "https://api.openai.com/v1",
+            "selected_model": "deepseek-chat",
+            "base_url": "https://api.deepseek.com/v1",
             "temperature": 0.7,
             "max_tokens": 2000,
             "top_p": 1.0,
             "frequency_penalty": 0.0,
             "presence_penalty": 0.0,
             "theme": "light",
-            "system_prompt": "你是一个有帮助的AI助手。",
-            "api_type": "openai"
+            "system_prompt": "你是星期八，一个友好、有趣的AI助手。请用中文进行回复。",
+            "api_type": "deepseek"
         }
         
         if os.path.exists(self.config_file):

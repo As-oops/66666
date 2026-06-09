@@ -290,7 +290,8 @@ def get_response_generator(
     api_key: str,
     base_url: str,
     params: Dict[str, Any],
-    use_simulation: bool = True
+    use_simulation: bool = True,
+    api_type: str = "deepseek"
 ) -> Generator[str, None, None]:
     """
     根据配置获取对应的响应生成器
@@ -302,6 +303,7 @@ def get_response_generator(
         base_url: API基础URL
         params: 其他参数
         use_simulation: 是否使用模拟模式
+        api_type: API类型 (deepseek/openai/anthropic)
         
     Yields:
         生成的文本片段
@@ -317,19 +319,33 @@ def get_response_generator(
         
         return simulate_response(last_user_message)
     
+    # 验证API密钥格式
+    if not validate_api_key(api_key):
+        yield "❌ API密钥无效！请检查您的API密钥是否正确。"
+        last_user_message = ""
+        for msg in reversed(messages):
+            if msg["role"] == "user":
+                last_user_message = msg["content"]
+                break
+        for chunk in simulate_response(last_user_message):
+            yield chunk
+        return
+    
     # 真实API调用（预留扩展接口）
     try:
-        # 根据模型类型选择API
-        if "deepseek" in model.lower():
+        # 根据api_type选择API（优先使用api_type）
+        if api_type == "deepseek" or "deepseek" in model.lower():
             # DeepSeek模型
+            yield "🔄 正在连接DeepSeek API..."
             return call_deepseek_api(
                 messages=messages,
                 model=model,
                 api_key=api_key,
                 **params
             )
-        elif "claude" in model.lower():
+        elif api_type == "anthropic" or "claude" in model.lower():
             # Anthropic Claude模型
+            yield "🔄 正在连接Anthropic API..."
             return call_anthropic_api(
                 messages=messages,
                 model=model,
@@ -338,6 +354,7 @@ def get_response_generator(
             )
         else:
             # OpenAI模型（默认）
+            yield "🔄 正在连接OpenAI API..."
             return call_openai_api(
                 messages=messages,
                 model=model,
@@ -345,9 +362,21 @@ def get_response_generator(
                 base_url=base_url,
                 **params
             )
+    except ImportError as e:
+        # 缺少依赖库
+        error_msg = f"❌ 缺少必要的依赖库: {str(e)}\n\n请安装对应的库：\n- DeepSeek/OpenAI: pip install openai\n- Anthropic: pip install anthropic"
+        yield error_msg
+        last_user_message = ""
+        for msg in reversed(messages):
+            if msg["role"] == "user":
+                last_user_message = msg["content"]
+                break
+        for chunk in simulate_response(last_user_message):
+            yield chunk
     except Exception as e:
         # 如果API调用失败，回退到模拟模式
-        yield f"⚠️ API调用失败: {str(e)}\n\n已切换到模拟模式。"
+        error_msg = f"⚠️ API调用失败: {str(e)}\n\n可能的原因：\n• API密钥不正确或已过期\n• 网络连接问题\n• 模型名称错误\n• API配额不足\n\n已切换到模拟模式。"
+        yield error_msg
         last_user_message = ""
         for msg in reversed(messages):
             if msg["role"] == "user":

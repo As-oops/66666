@@ -256,11 +256,31 @@ def render_sidebar():
         )
         config.set("top_p", top_p)
         
+        frequency_penalty = st.slider(
+            "Frequency Penalty (频率惩罚)",
+            min_value=0.0,
+            max_value=2.0,
+            value=float(config.get("frequency_penalty", 0.0)),
+            step=0.1,
+            help="减少重复内容"
+        )
+        config.set("frequency_penalty", frequency_penalty)
+        
+        presence_penalty = st.slider(
+            "Presence Penalty (存在惩罚)",
+            min_value=0.0,
+            max_value=2.0,
+            value=float(config.get("presence_penalty", 0.0)),
+            step=0.1,
+            help="增加新话题"
+        )
+        config.set("presence_penalty", presence_penalty)
+        
         # 系统提示词
         st.markdown("### 系统提示词")
         system_prompt = st.text_area(
             "设置AI角色",
-            value=config.get("system_prompt", "你是一个有帮助的AI助手。"),
+            value=config.get("system_prompt", "你是星期八，一个友好、有趣的AI助手。请用中文进行回复。"),
             height=100,
             help="设置AI的系统提示词"
         )
@@ -416,7 +436,8 @@ def handle_user_input(user_input: str):
                     "presence_penalty": config.get("presence_penalty", 0.0),
                     "stream": True
                 },
-                use_simulation=config.get("use_simulation", True)
+                use_simulation=config.get("use_simulation", True),
+                api_type=config.get("api_type", "deepseek")
             )
             
             # 清空思考提示
@@ -492,7 +513,33 @@ def main():
     render_sidebar()
     
     # 主内容区
-    st.markdown('<h1 class="main-title">🤖 智能对话Chatbot</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-title">🌟 星期八 AI 对话助手</h1>', unsafe_allow_html=True)
+    
+    # 助手介绍卡片
+    with st.container():
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown("""
+            <div style="text-align: center;">
+                <div style="font-size: 64px; margin-bottom: 10px;">🤖</div>
+                <div style="font-weight: bold; color: #ff4b4b;">星期八</div>
+                <div style="font-size: 12px; color: #666;">你的专属AI助手</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col2:
+            st.markdown("""
+            👋 你好！我是**星期八**，一个友好、有趣的AI助手。
+            
+            我可以帮你：
+            - 💡 回答各种问题
+            - 📝 撰写文章和文案
+            - 🤔 提供建议和思路
+            - 🎯 解决编程难题
+            
+            开始我们的对话吧！
+            """)
+    
+    st.divider()
     
     # 渲染会话列表
     with st.container():
@@ -505,7 +552,7 @@ def main():
         render_messages()
     
     # 消息输入
-    user_input = st.chat_input("输入您的问题...", key="chat_input")
+    user_input = st.chat_input("输入你想对星期八说的话...", key="chat_input")
     
     if user_input and user_input != st.session_state.last_user_input:
         st.session_state.last_user_input = user_input
