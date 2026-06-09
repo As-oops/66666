@@ -178,8 +178,8 @@ def render_sidebar():
         
         api_type = st.selectbox(
             "API类型",
-            ["OpenAI", "Anthropic"],
-            index=0 if config.get("api_type", "openai") == "openai" else 1
+            ["DeepSeek", "OpenAI", "Anthropic"],
+            index=["deepseek", "openai", "anthropic"].index(config.get("api_type", "deepseek"))
         )
         config.set("api_type", api_type.lower())
         

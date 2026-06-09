@@ -109,11 +109,17 @@ def get_available_models() -> list:
         模型列表
     """
     return [
+        # DeepSeek模型
+        {"id": "deepseek-chat", "name": "DeepSeek Chat", "provider": "DeepSeek"},
+        {"id": "deepseek-coder", "name": "DeepSeek Coder", "provider": "DeepSeek"},
+        # OpenAI模型
         {"id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo", "provider": "OpenAI"},
         {"id": "gpt-4", "name": "GPT-4", "provider": "OpenAI"},
         {"id": "gpt-4-turbo-preview", "name": "GPT-4 Turbo", "provider": "OpenAI"},
+        # Anthropic模型
         {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus", "provider": "Anthropic"},
         {"id": "claude-3-sonnet-20240229", "name": "Claude 3 Sonnet", "provider": "Anthropic"},
+        # 本地模型
         {"id": "local-model", "name": "本地模型", "provider": "自定义"}
     ]
 

@@ -113,6 +113,47 @@ def simulate_response(user_message: str) -> Generator[str, None, None]:
         yield char
         time.sleep(0.02)  # 模拟打字延迟
 
+def call_deepseek_api(
+    messages: List[Dict[str, str]],
+    model: str = "deepseek-chat",
+    api_key: str = None,
+    temperature: float = 0.7,
+    max_tokens: int = 2000,
+    top_p: float = 1.0,
+    stream: bool = True
+) -> Generator[str, None, None]:
+    """
+    调用DeepSeek API进行对话
+    DeepSeek API兼容OpenAI格式
+    
+    Args:
+        messages: 消息列表
+        model: 模型名称 (deepseek-chat 或 deepseek-coder)
+        api_key: DeepSeek API密钥
+        temperature: 温度参数
+        max_tokens: 最大token数
+        top_p: Top-p参数
+        stream: 是否流式输出
+        
+    Yields:
+        生成的文本片段
+    """
+    # DeepSeek API地址
+    base_url = "https://api.deepseek.com/v1"
+    
+    # 复用OpenAI API调用逻辑
+    for chunk in call_openai_api(
+        messages=messages,
+        model=model,
+        api_key=api_key,
+        base_url=base_url,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        top_p=top_p,
+        stream=stream
+    ):
+        yield chunk
+
 def call_openai_api(
     messages: List[Dict[str, str]],
     model: str = "gpt-3.5-turbo",
@@ -279,7 +320,16 @@ def get_response_generator(
     # 真实API调用（预留扩展接口）
     try:
         # 根据模型类型选择API
-        if "claude" in model.lower():
+        if "deepseek" in model.lower():
+            # DeepSeek模型
+            return call_deepseek_api(
+                messages=messages,
+                model=model,
+                api_key=api_key,
+                **params
+            )
+        elif "claude" in model.lower():
+            # Anthropic Claude模型
             return call_anthropic_api(
                 messages=messages,
                 model=model,
@@ -287,6 +337,7 @@ def get_response_generator(
                 **params
             )
         else:
+            # OpenAI模型（默认）
             return call_openai_api(
                 messages=messages,
                 model=model,

@@ -87,11 +87,18 @@ streamlit run app.py
 
 #### 真实API模式
 1. 在侧边栏取消勾选"使用模拟模式"
-2. 输入您的API密钥（OpenAI或Anthropic）
-3. 选择要使用的AI模型
-4. 调节参数（可选）
-5. 在输入框输入问题开始对话
-6. 对话会自动保存，可随时查看历史
+2. 选择API类型（DeepSeek / OpenAI / Anthropic）
+3. 输入对应的API密钥
+   - **DeepSeek**: 从 https://platform.deepseek.com 获取
+   - **OpenAI**: 从 https://platform.openai.com 获取
+   - **Anthropic**: 从 https://console.anthropic.com 获取
+4. 选择要使用的AI模型
+   - DeepSeek: deepseek-chat, deepseek-coder
+   - OpenAI: gpt-3.5-turbo, gpt-4, gpt-4-turbo
+   - Anthropic: claude-3-opus, claude-3-sonnet
+5. 调节参数（可选）
+6. 在输入框输入问题开始对话
+7. 对话会自动保存，可随时查看历史
 
 ## 📂 项目结构
 
