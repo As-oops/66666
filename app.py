@@ -10,7 +10,7 @@ from datetime import datetime
 from config import config, get_available_models, get_theme_colors
 from history_manager import get_conversation_manager
 from chat_utils import (
-    validate_message, clean_message, build_messages,
+    validate_message, validate_api_key, clean_message, build_messages,
     get_response_generator, format_timestamp, truncate_text
 )
 

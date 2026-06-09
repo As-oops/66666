@@ -28,6 +28,25 @@ def validate_message(message: str, max_length: int = 4000) -> tuple[bool, str]:
     
     return True, ""
 
+def validate_api_key(api_key: str) -> bool:
+    """
+    验证API密钥格式
+    
+    Args:
+        api_key: API密钥
+        
+    Returns:
+        是否有效
+    """
+    if not api_key or not api_key.strip():
+        return False
+    
+    # 基本的格式验证：API密钥通常至少20个字符
+    if len(api_key) < 10:
+        return False
+    
+    return True
+
 def clean_message(message: str) -> str:
     """
     清理消息内容
@@ -120,6 +139,8 @@ def call_deepseek_api(
     temperature: float = 0.7,
     max_tokens: int = 2000,
     top_p: float = 1.0,
+    frequency_penalty: float = 0.0,
+    presence_penalty: float = 0.0,
     stream: bool = True
 ) -> Generator[str, None, None]:
     """
@@ -133,6 +154,8 @@ def call_deepseek_api(
         temperature: 温度参数
         max_tokens: 最大token数
         top_p: Top-p参数
+        frequency_penalty: 频率惩罚
+        presence_penalty: 存在惩罚
         stream: 是否流式输出
         
     Yields:
@@ -150,6 +173,8 @@ def call_deepseek_api(
         temperature=temperature,
         max_tokens=max_tokens,
         top_p=top_p,
+        frequency_penalty=frequency_penalty,
+        presence_penalty=presence_penalty,
         stream=stream
     ):
         yield chunk
