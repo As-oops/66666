@@ -16,7 +16,7 @@ from chat_utils import (
 
 # 页面配置
 st.set_page_config(
-    page_title="智能对话Chatbot",
+    page_title="星期八 AI 对话助手",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,6 +34,15 @@ if 'waiting_for_response' not in st.session_state:
 
 if 'last_user_input' not in st.session_state:
     st.session_state.last_user_input = ""
+
+if 'debounce_timer' not in st.session_state:
+    st.session_state.debounce_timer = 0
+
+if 'search_query' not in st.session_state:
+    st.session_state.search_query = ""
+
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 1
 
 # 加载主题颜色
 theme = config.get("theme", "light")
@@ -165,21 +174,34 @@ def render_sidebar():
         if st.button("➕ 新建对话", use_container_width=True):
             new_id = st.session_state.conversation_manager.create_new_conversation()
             st.session_state.current_conversation_id = new_id
+            st.session_state.current_page = 1  # 新建会话后回到第一页
             st.rerun()
         
         # 搜索框
         search_query = st.text_input("🔍 搜索对话", key="search_input")
         
         # 获取会话列表
+        page_size = 10
         if search_query:
             conversations = st.session_state.conversation_manager.search_conversations(search_query)
+            total_conversations = len(conversations)
+            total_pages = (total_conversations + page_size - 1) // page_size
+            current_page = 1  # 搜索时从第一页开始
         else:
-            conversations = st.session_state.conversation_manager.conversations
+            # 使用分页获取会话列表
+            paginated_result = st.session_state.conversation_manager.get_conversations_list(
+                page=st.session_state.current_page,
+                page_size=page_size
+            )
+            conversations = paginated_result["conversations"]
+            total_conversations = paginated_result["total"]
+            total_pages = paginated_result["total_pages"]
+            current_page = paginated_result["page"]
         
         # 渲染会话列表
         if conversations:
-            st.markdown("### 会话列表")
-            for conv in conversations[:20]:  # 显示前20个
+            st.markdown(f"### 会话列表 ({total_conversations}条)")
+            for conv in conversations:
                 is_active = conv["id"] == st.session_state.current_conversation_id
                 
                 col1, col2 = st.columns([4, 1])
@@ -199,6 +221,27 @@ def render_sidebar():
                     if st.button("🗑️", key=f"del_{conv['id']}"):
                         st.session_state.conversation_manager.delete_conversation(conv["id"])
                         st.session_state.current_conversation_id = st.session_state.conversation_manager.current_conversation_id
+                        # 重新计算分页
+                        if not search_query:
+                            new_total = len(st.session_state.conversation_manager.conversations)
+                            new_total_pages = (new_total + page_size - 1) // page_size
+                            if current_page > new_total_pages:
+                                st.session_state.current_page = max(1, new_total_pages)
+                        st.rerun()
+            
+            # 分页控件（仅在非搜索模式下显示）
+            if not search_query and total_pages > 1:
+                st.markdown("---")
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col1:
+                    if st.button("◀️ 上一页", use_container_width=True, disabled=current_page <= 1):
+                        st.session_state.current_page = max(1, current_page - 1)
+                        st.rerun()
+                with col2:
+                    st.markdown(f"<center>第 {current_page}/{total_pages} 页</center>", unsafe_allow_html=True)
+                with col3:
+                    if st.button("下一页 ▶️", use_container_width=True, disabled=current_page >= total_pages):
+                        st.session_state.current_page = min(total_pages, current_page + 1)
                         st.rerun()
         else:
             st.info("暂无对话记录")
@@ -404,6 +447,14 @@ def handle_user_input(user_input: str):
     Args:
         user_input: 用户输入的文本
     """
+    # 输入防抖检查
+    current_time = time.time()
+    debounce_interval = 500  # 500毫秒防抖间隔
+    if current_time - st.session_state.debounce_timer < debounce_interval / 1000:
+        return
+    
+    st.session_state.debounce_timer = current_time
+    
     # 验证输入
     is_valid, error_msg = validate_message(user_input)
     if not is_valid:
