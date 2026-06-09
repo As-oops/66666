@@ -275,6 +275,16 @@ def render_sidebar():
         # 参数调节
         st.markdown("### 参数调节")
         
+        context_memory_limit = st.slider(
+            "上下文记忆数量",
+            min_value=0,
+            max_value=20,
+            value=int(config.get("context_memory_limit", 10)),
+            step=1,
+            help="保留最近N条历史消息作为上下文，0表示不使用历史记录"
+        )
+        config.set("context_memory_limit", context_memory_limit)
+        
         temperature = st.slider(
             "Temperature (创造性)",
             min_value=0.0,
@@ -419,16 +429,33 @@ def handle_user_input(user_input: str):
         response_placeholder = st.empty()
         
         try:
-            # 构建消息
-            messages = st.session_state.conversation_manager.get_messages()
+            # 获取所有历史消息（包括刚添加的用户消息）
+            all_messages = st.session_state.conversation_manager.get_messages()
+            
+            # 构建API请求消息（排除最后一条用户消息，因为已经单独添加了）
+            history_messages = all_messages[:-1]
+            
+            # 获取上下文记忆数量配置
+            context_memory_limit = config.get("context_memory_limit", 10)
+            
+            # 限制上下文记忆数量（保留最近的N条消息）
+            if len(history_messages) > context_memory_limit:
+                history_messages = history_messages[-context_memory_limit:]
+            
+            # 构建消息列表
             system_prompt = config.get("system_prompt")
-            built_messages = build_messages(messages[:-1], system_prompt)  # 不包含刚添加的用户消息
+            built_messages = build_messages(history_messages, system_prompt)
             
             # 添加当前用户消息
             built_messages.append({
                 "role": "user",
                 "content": user_input
             })
+            
+            # 显示上下文记忆信息
+            if history_messages:
+                context_info = f"📝 已加载 {len(history_messages)} 条历史消息作为上下文"
+                thinking_placeholder.markdown(context_info)
             
             # 获取响应生成器
             generator = get_response_generator(
@@ -444,7 +471,7 @@ def handle_user_input(user_input: str):
                     "presence_penalty": config.get("presence_penalty", 0.0),
                     "stream": True
                 },
-                use_simulation=config.get("use_simulation", True),
+                use_simulation=config.get("use_simulation", False),
                 api_type=config.get("api_type", "deepseek")
             )
             
