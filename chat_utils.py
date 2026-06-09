@@ -212,9 +212,11 @@ def call_openai_api(
     try:
         import openai
         
-        # 配置API密钥和基础URL
-        openai.api_key = api_key
-        openai.api_base = base_url
+        # 使用新版OpenAI客户端
+        client = openai.OpenAI(
+            api_key=api_key,
+            base_url=base_url
+        )
         
         # 构建请求参数
         params = {
@@ -232,19 +234,19 @@ def call_openai_api(
         params = {k: v for k, v in params.items() if v is not None}
         
         # 发起请求
-        response = openai.ChatCompletion.create(**params)
+        response = client.chat.completions.create(**params)
         
         if stream:
             # 流式响应
             for chunk in response:
-                if "choices" in chunk and len(chunk["choices"]) > 0:
-                    delta = chunk["choices"][0].get("delta", {})
-                    if "content" in delta:
-                        yield delta["content"]
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, 'content') and delta.content:
+                        yield delta.content
         else:
             # 非流式响应
-            if "choices" in response and len(response["choices"]) > 0:
-                content = response["choices"][0]["message"]["content"]
+            if response.choices and len(response.choices) > 0:
+                content = response.choices[0].message.content
                 yield content
                 
     except ImportError:
