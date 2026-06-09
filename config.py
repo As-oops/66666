@@ -39,7 +39,7 @@ class Config:
             "system_prompt": "你是星期八，一个友好、有趣的AI助手。请用中文进行回复。",
             "api_type": "deepseek",
             "use_simulation": False,
-            "context_memory_limit": 10
+            "context_memory_limit": 10  # 默认保留最近10条历史消息
         }
         
         if os.path.exists(self.config_file):

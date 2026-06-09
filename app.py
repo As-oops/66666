@@ -432,30 +432,45 @@ def handle_user_input(user_input: str):
             # 获取所有历史消息（包括刚添加的用户消息）
             all_messages = st.session_state.conversation_manager.get_messages()
             
-            # 构建API请求消息（排除最后一条用户消息，因为已经单独添加了）
-            history_messages = all_messages[:-1]
-            
             # 获取上下文记忆数量配置
             context_memory_limit = config.get("context_memory_limit", 10)
             
-            # 限制上下文记忆数量（保留最近的N条消息）
-            if len(history_messages) > context_memory_limit:
-                history_messages = history_messages[-context_memory_limit:]
-            
-            # 构建消息列表
-            system_prompt = config.get("system_prompt")
-            built_messages = build_messages(history_messages, system_prompt)
-            
-            # 添加当前用户消息
-            built_messages.append({
-                "role": "user",
-                "content": user_input
-            })
-            
-            # 显示上下文记忆信息
-            if history_messages:
+            # 如果有历史消息且启用了上下文记忆
+            if context_memory_limit > 0 and len(all_messages) > 1:
+                # 排除最后一条（刚添加的用户消息），获取历史消息
+                history_messages = all_messages[:-1]
+                
+                # 限制上下文记忆数量（保留最近的N条消息）
+                if len(history_messages) > context_memory_limit:
+                    history_messages = history_messages[-context_memory_limit:]
+                
+                # 构建消息列表（包含系统提示词和历史消息）
+                system_prompt = config.get("system_prompt")
+                built_messages = build_messages(history_messages, system_prompt)
+                
+                # 添加当前用户消息
+                built_messages.append({
+                    "role": "user",
+                    "content": user_input
+                })
+                
+                # 显示上下文记忆信息
                 context_info = f"📝 已加载 {len(history_messages)} 条历史消息作为上下文"
                 thinking_placeholder.markdown(context_info)
+            else:
+                # 不使用上下文记忆，只发送当前消息
+                system_prompt = config.get("system_prompt")
+                built_messages = []
+                if system_prompt:
+                    built_messages.append({
+                        "role": "system",
+                        "content": system_prompt
+                    })
+                built_messages.append({
+                    "role": "user",
+                    "content": user_input
+                })
+                thinking_placeholder.markdown("🔄 正在处理您的请求...")
             
             # 获取响应生成器
             generator = get_response_generator(
