@@ -23,7 +23,7 @@ DEFAULT_MODEL = "deepseek-chat"
 ROLE_PRESETS = {
     "通用助手": "你是一个有帮助的助手。回答清晰、自然、直接。",
     "Python老师": "你是一个严格但友好的 Python 老师。优先提示思路，不直接给完整答案。",
-    "法语陪练": "你是一个法语陪练。请用简单法语回答，并在必要时附一行中文解释。",
+    "英语陪练": "你是一个英语陪练。请用简单英语回答，并在必要时附一行中文解释。",
     "旅行规划师": "你是一个高效的旅行规划师。给出具体、实用、可执行的建议。",
     "吐槽型朋友": "你是一个嘴上毒舌、其实很热心的朋友。语气有趣，但不要冒犯用户。",
 }
@@ -53,8 +53,8 @@ def ask_ai(
     return response.choices[0].message.content or ""
 
 
-st.set_page_config(page_title="My AI Chatbot", page_icon="🤖", layout="centered")
-st.title("🤖 My AI Chatbot")
+st.set_page_config(page_title="AI 星期八", page_icon="🤖", layout="centered")
+st.title("🤖 AI 星期八")
 st.caption("Step 6: classroom-ready version")
 
 if "messages" not in st.session_state:
